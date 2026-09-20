@@ -20,7 +20,15 @@ An AI-powered symptom checker built for students, offering instant health guidan
 The ElevenLabs API key is never exposed client-side. `api/tts.js` is a serverless function (deploy target: Vercel) that holds the key server-side via an environment variable (`ELEVENLABS_API_KEY`) and proxies text-to-speech requests. The frontend calls `/api/tts` — it never talks to ElevenLabs directly.
 
 ## 📂 Project Structure
-
+​```
+/api        → Serverless function for secure TTS proxying
+/css        → Styling
+/js
+  database.js  → Symptom and disease reference data
+  engine.js    → Diagnosis/matching logic
+  app.js       → UI, voice, hospital finder, report generation
+index.html  → App shell
+​```
 ## ⚙️ Running Locally
 This is a static frontend — open `index.html` directly in a browser, or serve it with any static server:
 ```bash
