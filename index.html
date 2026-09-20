@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0a1a">
+  <link rel="manifest" href="manifest.json">
+  <title>MediCheck AI - Smart Symptom Checker</title>
+  <meta name="description" content="AI-powered symptom checker for students - get instant health guidance">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBy0SjYpIUY8P7pOMgNhAhxZqcjD9WMGM8&libraries=places"></script>
+</head>
+<body>
+  <!-- EMERGENCY OVERLAY -->
+  <div id="emergencyOverlay" class="emergency-overlay hidden">
+    <div class="emergency-content">
+      <div class="emergency-pulse-ring"></div>
+      <div class="emergency-icon">🚨</div>
+      <h1 class="emergency-title">EMERGENCY DETECTED</h1>
+      <p id="emergencyCondition" class="emergency-condition"></p>
+      <div class="emergency-number">
+        <span>Call Ambulance Now</span>
+        <a href="tel:108" class="emergency-call-btn">📞 108</a>
+      </div>
+      <p class="emergency-subtitle">Do NOT ignore these symptoms. Seek immediate medical attention.</p>
+
+      <!-- Hospital Finder -->
+      <div class="hospital-finder">
+        <button id="btnFindHospital" class="btn-find-hospital" onclick="HospitalFinder.getLocation()">
+          🏥 Find Nearest Hospital
+        </button>
+        <a id="mapsBtn" href="#" target="_blank" class="btn-maps-link hidden">
+          📍 Open in Google Maps
+        </a>
+        <p id="locationStatus" class="location-status"></p>
+      </div>
+      <div id="hospitalMap" class="hospital-map"></div>
+      <a id="fallbackBtn" href="https://www.google.com/maps/search/hospitals+near+me" target="_blank"
+        style="display:none;background:#22c55e;color:#fff;padding:12px 24px;border-radius:50px;
+               text-decoration:none;font-size:14px;font-weight:700;margin:8px auto;text-align:center">
+        📍 Open Hospitals in Google Maps
+      </a>
+
+      <button id="emergencyDismiss" class="emergency-dismiss">I understand — Continue to results</button>
+    </div>
+  </div>
+
+  <!-- PRINT REPORT (hidden, shown only during print) -->
+  <div id="printReport" class="print-report">
+    <div class="report-header">
+      <h1>🏥 MediCheck AI — Health Report</h1>
+      <p class="report-date" id="reportDate"></p>
+      <p class="report-disclaimer">This report is auto-generated and is NOT a medical diagnosis. Please consult a qualified healthcare professional.</p>
+    </div>
+    <div id="reportBody"></div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div class="app-container" id="appContainer">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">🏥</span>
+        <span class="logo-text">Medi<span class="logo-accent">Check</span> AI</span>
+      </div>
+      <nav class="nav-actions">
+        <button id="btnHospitals" class="nav-btn" title="Find Hospitals" onclick="HospitalFinder.getLocation(true)"><span>🏥</span> Hospitals</button>
+        <button id="btnHistory" class="nav-btn" title="History"><span>📋</span> History</button>
+        <button id="btnPrint" class="nav-btn hidden" title="Print Report"><span>🖨️</span> Report</button>
+        <button id="btnTheme" class="nav-btn" title="Toggle Theme"><span id="themeIcon">☀️</span></button>
+      </nav>
+    </header>
+
+    <!-- Hero Landing -->
+    <section id="heroSection" class="hero-section">
+      <div class="hero-bg-animation"></div>
+      <div class="hero-content">
+        <div class="hero-badge">AI-Powered Health Guidance</div>
+        <h1 class="hero-title">Smart Symptom<br><span class="gradient-text">Checker</span></h1>
+        <p class="hero-desc">Describe your symptoms and get instant AI-powered health insights with possible conditions, precautions, and emergency alerts.</p>
+        <div class="hero-features">
+          <div class="hero-feat"><span>🔍</span> 25+ Conditions</div>
+          <div class="hero-feat"><span>🎤</span> Voice Input</div>
+          <div class="hero-feat"><span>🚨</span> Emergency Alerts</div>
+          <div class="hero-feat"><span>🖨️</span> Health Reports</div>
+        </div>
+        <button id="btnStart" class="btn-start">
+          <span>Start Health Check</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- Main Chat + Dashboard -->
+    <main id="mainSection" class="main-content hidden">
+      <!-- Chat Panel -->
+      <div class="chat-panel">
+        <div class="chat-messages" id="chatMessages"></div>
+
+        <!-- Symptom Quick Tags -->
+        <div class="symptom-selector" id="symptomSelector">
+          <div class="selector-label">Quick select symptoms:</div>
+          <div class="symptom-chips" id="symptomChips"></div>
+        </div>
+
+        <!-- Selected symptoms bar -->
+        <div class="selected-bar hidden" id="selectedBar">
+          <div class="selected-chips" id="selectedChips"></div>
+          <button id="btnClearAll" class="btn-clear-all">✕ Clear</button>
+        </div>
+
+        <!-- Input Area -->
+        <div class="chat-input-area">
+          <div class="input-wrapper">
+            <input type="text" id="chatInput" class="chat-input" placeholder="Type a symptom (e.g., fever, headache)..." autocomplete="off">
+            <div class="autocomplete-dropdown hidden" id="autocomplete"></div>
+          </div>
+          <button id="btnVoice" class="btn-voice" title="Voice Input">
+            <svg id="micIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            <div class="voice-waves hidden" id="voiceWaves"><span></span><span></span><span></span></div>
+          </button>
+          <button id="btnAnalyze" class="btn-analyze" title="Analyze Symptoms">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Dashboard Panel -->
+      <div class="dashboard-panel" id="dashboardPanel">
+        <div class="dashboard-empty" id="dashboardEmpty">
+          <div class="empty-icon">📊</div>
+          <h3>Analysis Dashboard</h3>
+          <p>Select symptoms and click analyze to see health insights here.</p>
+        </div>
+        <div class="dashboard-results hidden" id="dashboardResults">
+          <div class="dash-section">
+            <h3 class="dash-title">Severity Assessment</h3>
+            <div class="severity-gauge" id="severityGauge">
+              <svg viewBox="0 0 120 120" class="gauge-svg">
+                <circle cx="60" cy="60" r="50" class="gauge-bg"/>
+                <circle cx="60" cy="60" r="50" class="gauge-fill" id="gaugeFill"/>
+                <text x="60" y="55" class="gauge-text" id="gaugeText">--</text>
+                <text x="60" y="72" class="gauge-label" id="gaugeLabel">Severity</text>
+              </svg>
+            </div>
+          </div>
+          <div class="dash-section">
+            <h3 class="dash-title">Matched Conditions</h3>
+            <div id="conditionsList" class="conditions-list"></div>
+          </div>
+          <div class="dash-section">
+            <h3 class="dash-title">Key Precautions</h3>
+            <div id="precautionsList" class="precautions-list"></div>
+          </div>
+          <div class="dash-section">
+            <h3 class="dash-title">⚕️ When to See a Doctor</h3>
+            <div id="doctorAdvice" class="doctor-advice"></div>
+          </div>
+          <button id="btnNewCheck" class="btn-new-check">🔄 New Health Check</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>📋 Check History</h2>
+          <button id="btnCloseHistory" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body" id="historyList">
+          <p class="empty-history">No previous checks yet.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>⚕️ <strong>Disclaimer:</strong> MediCheck AI provides general health information only. It is <strong>not</strong> a substitute for professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider.</p>
+    </footer>
+  </div>
+
+  <script src="js/database.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
